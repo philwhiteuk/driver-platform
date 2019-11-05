@@ -1,0 +1,43 @@
+version: '3'
+services:
+  gateway:
+    build: './src/gateway'
+    depends_on:
+    - fluentd
+    - telegraf
+    environment:
+    - LOG_DAEMON=fluentd:5140
+    - PUBLIC_PORT=8080
+    - SERVICE_NAME=gateway
+    - SERVICE_PORT=8081
+    - STATSD_DAEMON=telegraf:8125
+    expose:
+    - 8081
+    ports:
+    - 8080:8080
+  driver:
+    build: './src/driver'
+    depends_on:
+    - fluentd
+    - gateway
+    - telegraf
+    environment:
+    - API_GATEWAY=gateway:8081
+    - LOG_DAEMON=fluentd:5140
+    - SERVICE_NAME=driver
+    - SERVICE_PORT=8082
+    - STATSD_DAEMON=telegraf:8125
+
+  fluentd:
+    command: ["fluentd", "-c", "/fluentd/etc/fluentd.conf", "-q"]
+    expose:
+    - 5140
+    image: fluentd:v1.6-1
+    volumes:
+    - ./src/common:/fluentd/etc
+  telegraf:
+    expose:
+    - 8125
+    image: telegraf:1.12
+    volumes:
+    - ./src/common:/etc/telegraf
